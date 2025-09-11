@@ -6883,6 +6883,10 @@ static void show_test_coverage() {
 static void list_cpu_variants() {
     ggml_backend_load_all();
 
+#ifdef GGML_CPU_REF_BACKEND_PATH
+    ggml_backend_load(GGML_CPU_REF_BACKEND_PATH);
+#endif
+
     printf("Available CPU backend variants:\n");
     int n_cpu_variants = 0;
     
@@ -6904,11 +6908,11 @@ static void list_cpu_variants() {
     
     if (n_cpu_variants <= 1) {
         if (n_cpu_variants == 1) {
-            printf("  Only one CPU backend variant found.\n\n");
+            printf("\n  Only one CPU backend variant found.");
         } else {
-            printf("  No CPU backend variants found.\n\n");
+            printf("\n  No CPU backend variants found.");
         }
-        printf("  To enable CPU variants, rebuild with:\n");
+        printf(" To enable CPU variants, rebuild with:\n");
         printf("    cmake -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON\n");
     }
 }
