@@ -6880,8 +6880,41 @@ static void show_test_coverage() {
     printf("  Coverage: %.1f%%\n", (double)covered_ops.size() / all_ops.size() * 100.0);
 }
 
+static void list_cpu_variants() {
+    ggml_backend_load_all();
+
+    printf("Available CPU backend variants:\n");
+    int n_cpu_variants = 0;
+    
+    for (size_t i = 0; i < ggml_backend_reg_count(); i++) {
+        ggml_backend_reg_t reg = ggml_backend_reg_get(i);
+        const char * reg_name = ggml_backend_reg_name(reg);
+        
+        // Look for CPU-related backends
+        if (strstr(reg_name, "CPU") != nullptr) {
+            size_t device_count = ggml_backend_reg_dev_count(reg);
+            for (size_t j = 0; j < device_count; j++) {
+                ggml_backend_dev_t dev = ggml_backend_reg_dev_get(reg, j);
+                const char * dev_desc = ggml_backend_dev_description(dev);
+                printf("  %s - %s\n", reg_name, dev_desc);
+                n_cpu_variants++;
+            }
+        }
+    }
+    
+    if (n_cpu_variants <= 1) {
+        if (n_cpu_variants == 1) {
+            printf("  Only one CPU backend variant found.\n\n");
+        } else {
+            printf("  No CPU backend variants found.\n\n");
+        }
+        printf("  To enable CPU variants, rebuild with:\n");
+        printf("    cmake -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON\n");
+    }
+}
+
 static void usage(char ** argv) {
-    printf("Usage: %s [mode] [-o <op,..>] [-b <backend>] [-p <params regex>] [--output <console|sql|csv>] [--list-ops] [--show-coverage]\n", argv[0]);
+    printf("Usage: %s [mode] [-o <op,..>] [-b <backend>] [-p <params regex>] [--output <console|sql|csv>] [--list-ops] [--list-cpu-variants] [--show-coverage]\n", argv[0]);
     printf("    valid modes:\n");
     printf("      - test (default, compare with CPU backend for correctness)\n");
     printf("      - grad (compare gradients from backpropagation with method of finite differences)\n");
@@ -6891,6 +6924,7 @@ static void usage(char ** argv) {
     printf("        optionally including the full test case string (e.g. \"ADD(type=f16,ne=[1,1,8,1],nr=[1,1,1,1],nf=1)\")\n");
     printf("    --output specifies output format (default: console, options: console, sql, csv)\n");
     printf("    --list-ops lists all available GGML operations\n");
+    printf("    --list-cpu-variants lists all available CPU backend variants\n");
     printf("    --show-coverage shows test coverage\n");
 }
 
@@ -6943,6 +6977,9 @@ int main(int argc, char ** argv) {
             }
         } else if (strcmp(argv[i], "--list-ops") == 0) {
             list_all_ops();
+            return 0;
+        } else if (strcmp(argv[i], "--list-cpu-variants") == 0) {
+            list_cpu_variants();
             return 0;
         } else if (strcmp(argv[i], "--show-coverage") == 0) {
             show_test_coverage();
