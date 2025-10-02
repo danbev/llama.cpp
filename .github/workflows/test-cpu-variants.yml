@@ -15,11 +15,21 @@ on:
         type: string
 
 jobs:
-  test-cpu-variant:
-    runs-on: [self-hosted, Linux, X64, CPU, AMX]
+  test-cpu-variant-sve:
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Clone
         uses: actions/checkout@v4
+
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update
+          sudo apt-get install build-essential gcc-14 g++-14
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          gcc --version
 
       - name: Build with CPU reference backend
         run: |
@@ -30,6 +40,7 @@ jobs:
             -DGGML_NATIVE=OFF \
             -DGGML_BACKEND_DL=ON \
             -DGGML_BLAS=OFF \
+            -DLLAMA_CURL=OFF \
             -DCMAKE_BUILD_TYPE=Release
           
           cmake --build build -j8
