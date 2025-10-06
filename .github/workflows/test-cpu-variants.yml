@@ -79,21 +79,13 @@ jobs:
           echo "  - operation: your operation string (default: MUL_MAT)"
           echo "=========================================="
 
-  sve-reproducer:
-    runs-on: ubuntu-24.04-arm
+  test-cpu-amx:
+    runs-on: [self-hosted, Linux, X64, CPU, AMX]
+
     steps:
       - name: Clone
+        id: checkout
         uses: actions/checkout@v4
-
-      - name: Dependencies
-        run: |
-          sudo apt-get update
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-          sudo apt-get update
-          sudo apt-get install build-essential gcc-14 g++-14 python3-venv
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
-          gcc --version
 
       - name: Build with CPU reference backend
         run: |
@@ -111,57 +103,29 @@ jobs:
 
           cmake --build build -j8
 
-      - name: Setup Python environment
+      - name: List available CPU variants
         run: |
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt --disable-pip-version-check
-          pip install --editable gguf-py --disable-pip-version-check
+          echo "Available CPU variants:"
+          ./build/bin/test-backend-ops cpu-variants --list
 
-      - name: Download rerank-tiny model files
+      - name: Test CPU variant
+        if: ${{ inputs.variant != '' }}
         run: |
-          mkdir -p models-mnt/rerank-tiny
+          echo "Testing variant: ${{ inputs.variant }}"
+          echo "Operation: ${{ inputs.operation }}"
+          ./build/bin/test-backend-ops cpu-variants \
+            --variant ${{ inputs.variant }} \
+            -o "${{ inputs.operation }}"
 
-          cd models-mnt/rerank-tiny
-          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/raw/main/config.json
-          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/raw/main/tokenizer.json
-          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/raw/main/tokenizer_config.json
-          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/raw/main/special_tokens_map.json
-          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/resolve/main/pytorch_model.bin
-          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/raw/main/vocab.json
-
-      - name: Convert model
+      - name: Instructions
+        if: ${{ inputs.variant == '' }}
         run: |
-          source venv/bin/activate
-          python3 convert_hf_to_gguf.py models-mnt/rerank-tiny --outfile models-mnt/rerank-tiny/ggml-model-f16.gguf
-
-      - name: Run rerank test
-        run: |
-          ./build/bin/llama-embedding \
-            --model models-mnt/rerank-tiny/ggml-model-f16.gguf \
-            -p "what is panda?\thi\nwhat is panda?\tit's a bear\nwhat is panda?\tThe giant panda (Ailuropoda melanoleuca), sometimes called a panda bear or simply panda, is a bear species endemic to China." \
-            -ngl 99 -c 0 --pooling rank --embd-normalize -1 --verbose-prompt | tee rerank-output.log
-
-      - name: Validate rerank scores
-        run: |
-          check_score() {
-            qnt="$1"
-            score=$(echo "$2" | grep -oE '[0-9]+\.[0-9]+' | tail -n 1)
-            min="$3"
-            max="$4"
-
-            if [ $(echo "$score < $min" | bc) -eq 1 ] || [ $(echo "$score > $max" | bc) -eq 1 ]; then
-              printf '  - %s @ %s (FAIL: score not in range [%s, %s])\n' "$qnt" "$score" "$min" "$max"
-              return 20
-            fi
-
-            printf '  - %s @ %s OK\n' "$qnt" "$score"
-            return 0
-          }
-
-          check_score "rerank score 0" "$(cat rerank-output.log | grep 'rerank score 0')" "0.00" "0.05"
-          check_score "rerank score 1" "$(cat rerank-output.log | grep 'rerank score 1')" "0.00" "0.05"
-          check_score "rerank score 2" "$(cat rerank-output.log | grep 'rerank score 2')" "0.10" "0.30"
+          echo "=========================================="
+          echo "No variant specified - only listed available variants above"
+          echo "To test a specific variant, re-run this workflow with:"
+          echo "  - variant: one of the variants listed above"
+          echo "  - operation: your operation string (default: MUL_MAT)"
+          echo "=========================================="
 
       - name: Setup tmate session for debugging
         if: ${{ failure() || github.event.inputs.debug_enabled }}
