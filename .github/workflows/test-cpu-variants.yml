@@ -13,6 +13,16 @@ on:
         required: false
         default: ''
         type: string
+      debug_enabled:
+        description: 'Enable tmate debugging session'
+        required: false
+        default: false
+        type: boolean
+      disable_repack:
+        description: 'Disable CPU repack (GGML_CPU_REPACK)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   test-cpu-variant-sve:
@@ -68,3 +78,92 @@ jobs:
           echo "  - variant: one of the variants listed above"
           echo "  - operation: your operation string (default: MUL_MAT)"
           echo "=========================================="
+
+  sve-reproducer:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update
+          sudo apt-get install build-essential gcc-14 g++-14 python3-venv
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          gcc --version
+
+      - name: Build with CPU reference backend
+        run: |
+          REPACK_FLAG=${{ inputs.disable_repack == false && '-DGGML_CPU_REPACK=ON' || '-DGGML_CPU_REPACK=OFF' }}
+
+          cmake -B build -S . \
+            -DGGML_CPU_REF_BACKEND=ON \
+            -DGGML_CPU_ALL_VARIANTS=ON \
+            $REPACK_FLAG \
+            -DGGML_NATIVE=OFF \
+            -DGGML_BACKEND_DL=ON \
+            -DGGML_BLAS=OFF \
+            -DLLAMA_CURL=OFF \
+            -DCMAKE_BUILD_TYPE=Release
+
+          cmake --build build -j8
+
+      - name: Setup Python environment
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt --disable-pip-version-check
+          pip install --editable gguf-py --disable-pip-version-check
+
+      - name: Download rerank-tiny model files
+        run: |
+          mkdir -p models-mnt/rerank-tiny
+
+          cd models-mnt/rerank-tiny
+          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/raw/main/config.json
+          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/raw/main/tokenizer.json
+          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/raw/main/tokenizer_config.json
+          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/raw/main/special_tokens_map.json
+          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/resolve/main/pytorch_model.bin
+          wget -nv -c -N https://huggingface.co/jinaai/jina-reranker-v1-tiny-en/raw/main/vocab.json
+
+      - name: Convert model
+        run: |
+          source venv/bin/activate
+          python3 convert_hf_to_gguf.py models-mnt/rerank-tiny --outfile models-mnt/rerank-tiny/ggml-model-f16.gguf
+
+      - name: Run rerank test
+        run: |
+          ./build/bin/llama-embedding \
+            --model models-mnt/rerank-tiny/ggml-model-f16.gguf \
+            -p "what is panda?\thi\nwhat is panda?\tit's a bear\nwhat is panda?\tThe giant panda (Ailuropoda melanoleuca), sometimes called a panda bear or simply panda, is a bear species endemic to China." \
+            -ngl 99 -c 0 --pooling rank --embd-normalize -1 --verbose-prompt | tee rerank-output.log
+
+      - name: Validate rerank scores
+        run: |
+          check_score() {
+            qnt="$1"
+            score=$(echo "$2" | grep -oE '[0-9]+\.[0-9]+' | tail -n 1)
+            min="$3"
+            max="$4"
+
+            if [ $(echo "$score < $min" | bc) -eq 1 ] || [ $(echo "$score > $max" | bc) -eq 1 ]; then
+              printf '  - %s @ %s (FAIL: score not in range [%s, %s])\n' "$qnt" "$score" "$min" "$max"
+              return 20
+            fi
+
+            printf '  - %s @ %s OK\n' "$qnt" "$score"
+            return 0
+          }
+
+          check_score "rerank score 0" "$(cat rerank-output.log | grep 'rerank score 0')" "0.00" "0.05"
+          check_score "rerank score 1" "$(cat rerank-output.log | grep 'rerank score 1')" "0.00" "0.05"
+          check_score "rerank score 2" "$(cat rerank-output.log | grep 'rerank score 2')" "0.10" "0.30"
+
+      - name: Setup tmate session for debugging
+        if: ${{ failure() || github.event.inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
