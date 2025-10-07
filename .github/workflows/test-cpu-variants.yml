@@ -13,6 +13,16 @@ on:
         required: false
         default: ''
         type: string
+      debug_enabled:
+        description: 'Enable tmate debugging session'
+        required: false
+        default: false
+        type: boolean
+      disable_repack:
+        description: 'Disable CPU repack (GGML_CPU_REPACK)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   test-cpu-variant-sve:
@@ -33,10 +43,12 @@ jobs:
 
       - name: Build with CPU reference backend
         run: |
+          REPACK_FLAG=${{ inputs.disable_repack == false && '-DGGML_CPU_REPACK=ON' || '-DGGML_CPU_REPACK=OFF' }}
+
           cmake -B build -S . \
             -DGGML_CPU_REF_BACKEND=ON \
             -DGGML_CPU_ALL_VARIANTS=ON \
-            -DGGML_CPU_REPACK=ON \
+            $REPACK_FLAG \
             -DGGML_NATIVE=OFF \
             -DGGML_BACKEND_DL=ON \
             -DGGML_BLAS=OFF \
@@ -68,3 +80,8 @@ jobs:
           echo "  - variant: one of the variants listed above"
           echo "  - operation: your operation string (default: MUL_MAT)"
           echo "=========================================="
+
+      - name: Setup tmate session for debugging
+        if: ${{ failure() || github.event.inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 30
