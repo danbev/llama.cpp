@@ -463,6 +463,13 @@ static void llama_sampler_chain_apply(struct llama_sampler * smpl, llama_token_d
     for (auto * smpl : chain->samplers) {
         llama_sampler_apply(smpl, cur_p);
     }
+
+    // Possibly run the gpu samplers here by:
+    // * Create computation graph
+    // * Convert cur_p to llama_sampler_ggml_data
+    // * Call apply_ggml for each gpu sampler in the chain
+    // * Compute the graph
+    // * Convert back to cur_p
 }
 
 static void llama_sampler_chain_reset(struct llama_sampler * smpl) {
@@ -498,6 +505,23 @@ static void llama_sampler_chain_free(struct llama_sampler * smpl) {
     delete chain;
 }
 
+static void llama_sampler_chain_apply_ggml(
+          struct llama_sampler * smpl,
+          struct ggml_context * ctx,
+          struct ggml_cgraph * gf,
+          struct llama_sampler_ggml_data * ggml_data) {
+      auto * chain = (llama_sampler_chain *) smpl->ctx;
+
+      // Let each sampler add operations to the graph
+      for (auto * smpl : chain->samplers) {
+          if (smpl->iface->apply_ggml) {
+              smpl->iface->apply_ggml(smpl, ctx, gf, ggml_data);
+          }
+      }
+
+      //ggml_graph_compute(ctx, gf);
+  }
+
 static struct llama_sampler_i llama_sampler_chain_i = {
     /* .name       = */ llama_sampler_chain_name,
     /* .accept     = */ llama_sampler_chain_accept,
@@ -505,7 +529,7 @@ static struct llama_sampler_i llama_sampler_chain_i = {
     /* .reset      = */ llama_sampler_chain_reset,
     /* .clone      = */ llama_sampler_chain_clone,
     /* .free       = */ llama_sampler_chain_free,
-    /* .apply_ggml = */ nullptr,
+    /* .apply_ggml = */ llama_sampler_chain_apply_ggml,
 };
 
 struct llama_sampler * llama_sampler_chain_init(struct llama_sampler_chain_params params) {
