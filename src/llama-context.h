@@ -66,6 +66,10 @@ struct llama_context {
     float * get_embeddings_ith(int32_t i);
     float * get_embeddings_seq(llama_seq_id seq_id);
 
+    llama_token * get_sampled_tokens();
+    llama_token   get_sampled_token_ith(int32_t idx);
+    float       * get_sampled_probs_ith(int32_t idx);
+
     void attach_threadpool(
             ggml_threadpool_t threadpool,
             ggml_threadpool_t threadpool_batch);
@@ -234,6 +238,7 @@ private:
     llama_adapter_cvec  cvec;
     llama_adapter_loras loras;
 
+
     llama_cross cross; // TODO: tmp for handling cross-attention - need something better probably
 
     std::unique_ptr<llama_memory_i> memory;
@@ -241,6 +246,13 @@ private:
     // decode output (2-dimensional array: [n_outputs][n_vocab])
     size_t  logits_size = 0; // capacity (of floats) for logits
     float * logits      = nullptr;
+
+    std::unordered_map<llama_seq_id, llama_sampler*> samplers;
+    llama_token * sampled_tokens = nullptr;
+    std::unordered_map<int32_t, llama_token> sampled_tokens_map;
+
+    float * sampled_probs = nullptr;
+    std::unordered_map<int32_t, std::vector<float>> sampled_probs_map;
 
     // embeddings output (2-dimensional array: [n_outputs][n_embd])
     // populated only when pooling_type == LLAMA_POOLING_TYPE_NONE

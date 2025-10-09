@@ -204,6 +204,8 @@ llama_build_and_test(test-gguf.cpp)
 llama_build_and_test(test-backend-ops.cpp)
 
 llama_build_and_test(test-model-load-cancel.cpp  LABEL "model")
+llama_build_and_test(test-gpu-sampling.cpp       LABEL "model")
+target_include_directories(test-gpu-sampling PRIVATE ${PROJECT_SOURCE_DIR}/src)
 llama_build_and_test(test-autorelease.cpp        LABEL "model")
 
 if (NOT GGML_BACKEND_DL)
