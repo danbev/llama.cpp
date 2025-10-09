@@ -209,6 +209,15 @@ extern "C" {
         bool sorted;      // note: do not assume the data is sorted - always check this flag
     } llama_token_data_array;
 
+    struct llama_sampler_ggml_data {
+        struct ggml_tensor * ids;     // [size] - GGML_TYPE_I32
+        struct ggml_tensor * logits;  // [size] - GGML_TYPE_F32
+        struct ggml_tensor * probs;   // [size] - GGML_TYPE_F32
+        int64_t size;                 // current number of tokens in the array
+        int64_t selected;             // index in the array (-1 if not yet selected)
+        bool sorted;                  // whether data is sorted by logits/probs
+    };
+
     typedef bool (*llama_progress_callback)(float progress, void * user_data);
 
     // Input data for llama_encode/llama_decode
@@ -1130,6 +1139,11 @@ extern "C" {
         void                   (*reset) (      struct llama_sampler * smpl);                                 // can be NULL
         struct llama_sampler * (*clone) (const struct llama_sampler * smpl);                                 // can be NULL if ctx is NULL
         void                   (*free)  (      struct llama_sampler * smpl);                                 // can be NULL if ctx is NULL
+
+        void                   (*apply_ggml)(  struct llama_sampler * smpl,
+                                                       ggml_context * ctx,
+                                                        ggml_cgraph * gf,
+                                            llama_sampler_ggml_data * ggml_data);
 
         // TODO: API for internal libllama usage for appending the sampling to an existing ggml_cgraph
         //void (*apply_ggml) (struct llama_sampler * smpl, ...);
