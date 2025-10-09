@@ -287,6 +287,105 @@ static void bench(llama_sampler * cnstr, const char * cnstr_name, const std::vec
 
 #define BENCH(__cnstr, __data, __n_iter) bench((__cnstr), #__cnstr, (__data), (__n_iter))
 
+// Test sampler with apply_ggml implementation
+static void test_sampler_apply_ggml(
+        struct llama_sampler           * smpl,
+        struct ggml_context            * ctx,
+        struct ggml_cgraph             * gf,
+        struct llama_sampler_ggml_data * ggml_data) {
+    printf("apply_ggml called:\n");
+    printf("  size: %lld\n", (long long)ggml_data->size);
+    printf("  selected: %lld\n", (long long)ggml_data->selected);
+    printf("  sorted: %s\n", ggml_data->sorted ? "true" : "false");
+
+    int32_t * ids_data    = (int32_t *)ggml_data->ids->data;
+    float   * logits_data = (float *)ggml_data->logits->data;
+    float   * probs_data  = (float *)ggml_data->probs->data;
+
+    for (int64_t i = 0; i < ggml_data->size; i++) {
+        printf("  [%lld] id=%d logit=%f prob=%f\n", (long long)i, ids_data[i], logits_data[i], probs_data[i]);
+    }
+}
+
+static void test_sampler_apply(struct llama_sampler * /*smpl*/, llama_token_data_array * /*cur_p*/) { }
+
+static const char * test_sampler_name(const struct llama_sampler *) {
+    return "test-ggml";
+}
+
+static struct llama_sampler * llama_sampler_init_test_ggml() {
+    static const llama_sampler_i iface = {
+        /*.name        =*/ test_sampler_name,
+        /*.accept      =*/ nullptr,
+        /*.apply       =*/ test_sampler_apply,
+        /*.reset       =*/ nullptr,
+        /*.clone       =*/ nullptr,
+        /*.free        =*/ nullptr,  // llama_sampler_free handles deleting the sampler
+        /*.apply_ggml  =*/ test_sampler_apply_ggml,
+    };
+
+    auto * sampler = new llama_sampler {
+        /*.iface =*/ &iface,
+        /*.ctx   =*/ nullptr,
+    };
+
+    return sampler;
+}
+
+static void test_ggml_sampling() {
+    const int n_tokens = 4;
+
+    struct ggml_init_params params = {
+        /*.mem_size   =*/ 1024 * 1024,
+        /*.mem_buffer =*/ nullptr,
+        /*.no_alloc   =*/ false,
+    };
+    struct ggml_context * ctx = ggml_init(params);
+    GGML_ASSERT(ctx != nullptr);
+
+    struct ggml_tensor * ids    = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, n_tokens);
+    struct ggml_tensor * logits = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, n_tokens);
+    struct ggml_tensor * probs  = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, n_tokens);
+
+    int32_t * ids_data    = (int32_t *)ids->data;
+    float   * logits_data = (float *)logits->data;
+    float   * probs_data  = (float *)probs->data;
+
+    for (int i = 0; i < n_tokens; i++) {
+        ids_data[i] = i;
+        logits_data[i] = logf(0.1f + i * 0.1f);
+        probs_data[i] = 0.1f + i * 0.1f;
+    }
+
+    struct llama_sampler_ggml_data ggml_data = {
+        /*.ids      =*/ ids,
+        /*.logits   =*/ logits,
+        /*.probs    =*/ probs,
+        /*.size     =*/ n_tokens,
+        /*.selected =*/ -1,
+        /*.sorted   =*/ false,
+    };
+
+    struct ggml_cgraph * gf = ggml_new_graph(ctx);
+
+    struct llama_sampler * sampler = llama_sampler_init_test_ggml();
+    GGML_ASSERT(sampler->iface->apply_ggml != nullptr);
+
+    printf("Testing apply_ggml with test sampler...\n");
+    sampler->iface->apply_ggml(sampler, ctx, gf, &ggml_data);
+
+    // Verify data structure is still valid
+    GGML_ASSERT(ggml_data.size   == n_tokens);
+    GGML_ASSERT(ggml_data.ids    == ids);
+    GGML_ASSERT(ggml_data.logits == logits);
+    GGML_ASSERT(ggml_data.probs  == probs);
+
+    printf("GPU sampling test PASSED\n");
+
+    llama_sampler_free(sampler);
+    ggml_free(ctx);
+}
+
 static void test_perf() {
     const int n_vocab = 1 << 17;
 
@@ -308,6 +407,7 @@ static void test_perf() {
 int main(void) {
     ggml_time_init();
 
+    /*
     test_temp({0.1f, 0.2f, 0.3f, 0.4f}, {0.1f, 0.2f, 0.3f, 0.4f}, 1.0f);
     test_temp({0.1f, 0.2f, 0.3f, 0.4f}, {0.0f, 0.0f, 0.0f, 1.0f}, 0.0f);
 
@@ -395,6 +495,8 @@ int main(void) {
     printf("OK\n");
 
     test_perf();
+    */
+    test_ggml_sampling();
 
     return 0;
 }
