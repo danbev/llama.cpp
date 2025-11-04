@@ -210,6 +210,13 @@ extern "C" {
         bool sorted;      // note: do not assume the data is sorted - always check this flag
     } llama_token_data_array;
 
+    struct llama_sampler_ggml_data {
+        struct ggml_tensor * logits;        // [n_vocab]          - GGML_TYPE_F32
+        struct ggml_tensor * probs;         // [n_vocab, n_vocab] - GGML_TYPE_F32
+        struct ggml_tensor * sampled_token; // [1,       n_vocab] - GGML_TYPE_I32
+        struct ggml_tensor * filtered_ids;  // [k]                - GGML_TYPE_I32
+    };
+
     typedef bool (*llama_progress_callback)(float progress, void * user_data);
 
     // Input data for llama_encode/llama_decode
@@ -300,6 +307,11 @@ extern "C" {
         bool no_host;         // bypass host buffer allowing extra buffers to be used
     };
 
+    struct llama_sampler_seq_config {
+        llama_seq_id           seq_id;
+        struct llama_sampler * sampler;
+    };
+
     // NOTE: changing the default values of parameters marked as [EXPERIMENTAL] may cause crashes or incorrect results in certain configurations
     //       https://github.com/ggml-org/llama.cpp/pull/7544
     struct llama_context_params {
@@ -348,6 +360,10 @@ extern "C" {
         bool kv_unified;  // use a unified buffer across the input sequences when computing the attention
                           // try to disable when n_seq_max > 1 for improved performance when the sequences do not share a large prefix
                           // ref: https://github.com/ggml-org/llama.cpp/pull/14363
+
+        // GPU sampler chain configuration
+        struct llama_sampler_seq_config * samplers;
+        size_t                            n_samplers;
     };
 
     // model quantization parameters
@@ -948,6 +964,29 @@ extern "C" {
     // otherwise: float[n_embd] (1-dimensional)
     LLAMA_API float * llama_get_embeddings_seq(struct llama_context * ctx, llama_seq_id seq_id);
 
+    // Get the GPU sampled token for the ith token.
+    // Returns LLAMA_TOKEN_NULL if no token was sampled.
+    LLAMA_API llama_token llama_get_sampled_token_ith(struct llama_context * ctx, int32_t i);
+
+    // Get the GPU sampled probabilites for the ith token
+    // The index matches llama_get_sampled_token_ith().
+    // Returns NULL if no probabilites were generated.
+    LLAMA_API float * llama_get_sampled_probs_ith(struct llama_context * ctx, int32_t i);
+
+    // Get the GPU sampled logits for the ith token
+    // Returns NULL if no logits were sampled.
+    LLAMA_API float * llama_get_sampled_logits_ith(struct llama_context * ctx, int32_t i);
+
+    // Get the GPU sampled token ids associated with the sampled logits for the ith token
+    // Returns NULL if no logits were sampled.
+    LLAMA_API llama_token * llama_get_sampled_token_ids_ith(struct llama_context * ctx, int32_t i);
+
+    // Get the number of GPU sampled logits for the ith token.
+    LLAMA_API uint32_t llama_get_sampled_logits_count_ith(struct llama_context * ctx, int32_t i);
+
+    // Get the number of GPU sampled probabilites for the ith token.
+    LLAMA_API uint32_t llama_get_sampled_probs_count_ith(struct llama_context * ctx, int32_t i);
+
     //
     // Vocab
     //
@@ -1133,6 +1172,17 @@ extern "C" {
         struct llama_sampler * (*clone) (const struct llama_sampler * smpl);                                 // can be NULL if ctx is NULL
         void                   (*free)  (      struct llama_sampler * smpl);                                 // can be NULL if ctx is NULL
 
+        void                   (*apply_ggml)(  struct llama_sampler           * smpl,
+                                               struct ggml_context            * ctx,
+                                               struct  ggml_cgraph            * gf,
+                                               struct llama_sampler_ggml_data * ggml_data);
+
+        void                   (*accept_ggml)( struct llama_sampler * smpl,
+                                               struct ggml_context  * ctx,
+                                               struct ggml_cgraph   * gf,
+                                               struct ggml_tensor   * selected_token);
+
+
         // TODO: API for internal libllama usage for appending the sampling to an existing ggml_cgraph
         //void (*apply_ggml) (struct llama_sampler * smpl, ...);
     };
@@ -1150,7 +1200,16 @@ extern "C" {
     LLAMA_API void                   llama_sampler_reset (      struct llama_sampler * smpl);
     LLAMA_API struct llama_sampler * llama_sampler_clone (const struct llama_sampler * smpl);
     // important: do not free if the sampler has been added to a llama_sampler_chain (via llama_sampler_chain_add)
-    LLAMA_API void                   llama_sampler_free  (      struct llama_sampler * smpl);
+    LLAMA_API void                   llama_sampler_free  (      struct llama_sampler           * smpl);
+    LLAMA_API void                   llama_sampler_apply_ggml(  struct llama_sampler           * smpl,
+                                                                struct ggml_context            * ctx,
+                                                                struct ggml_cgraph             * gf,
+                                                                struct llama_sampler_ggml_data * ggml_data);
+
+    LLAMA_API void                   llama_sampler_accept_ggml( struct llama_sampler * smpl,
+                                                                struct ggml_context  * ctx,
+                                                                struct  ggml_cgraph  * gf,
+                                                                struct ggml_tensor   * selected_token);
 
     // llama_sampler_chain
     // a type of llama_sampler that can chain multiple samplers one after another
@@ -1164,6 +1223,7 @@ extern "C" {
 
     // after removing a sampler, the chain will no longer own it, and it will not be freed when the chain is freed
     LLAMA_API struct llama_sampler * llama_sampler_chain_remove(   struct llama_sampler * chain, int32_t i);
+    LLAMA_API uint64_t               llama_sampler_chain_get_version(const struct llama_sampler * chain);
 
     // available samplers:
 

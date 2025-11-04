@@ -462,6 +462,23 @@ void llm_graph_input_mem_hybrid::set_input(const llama_ubatch * ubatch) {
     inp_rs->set_input(ubatch);
 }
 
+void llm_graph_input_sampling::set_input(const llama_ubatch * ubatch) {
+    GGML_UNUSED(ubatch);
+}
+
+bool llm_graph_input_sampling::can_reuse(const llm_graph_params & params) {
+    if (params.samplers.empty()) {
+        return true;
+    }
+
+    for (const auto & [seq_id, sampler] : params.samplers) {
+        if (sampler_versions[seq_id] != llama_sampler_chain_get_version(sampler)) {
+           return false;
+        }
+    }
+    return true;
+}
+
 //
 // llm_graph_result
 //
@@ -478,10 +495,14 @@ int64_t llm_graph_result::get_max_nodes() const {
 }
 
 void llm_graph_result::reset() {
-    t_tokens      = nullptr;
-    t_logits      = nullptr;
-    t_embd        = nullptr;
-    t_embd_pooled = nullptr;
+    t_tokens        = nullptr;
+    t_logits        = nullptr;
+    t_embd          = nullptr;
+    t_embd_pooled   = nullptr;
+    t_sampled_tokens.clear();
+    t_sampled_probs.clear();
+    t_sampled_logits.clear();
+    t_sampled_token_ids.clear();
 
     params = {};
 
@@ -587,6 +608,7 @@ llm_graph_context::llm_graph_context(const llm_graph_params & params) :
     loras            (params.loras),
     mctx             (params.mctx),
     cross            (params.cross),
+    samplers         (params.samplers),
     cb_func          (params.cb),
     res              (params.res),
     ctx0             (res->get_ctx()),
@@ -2018,6 +2040,77 @@ void llm_graph_context::build_pooling(
     res->t_embd_pooled = cur;
 
     ggml_build_forward_expand(gf, cur);
+}
+
+void llm_graph_context::build_sampling(const llama_model & model, const llm_graph_params & params) const {
+    GGML_UNUSED(params);
+    if (samplers.empty()) {
+        return;
+    }
+
+    std::unordered_map<llama_seq_id, int32_t> seq_to_logit_row;
+    int32_t logit_row_idx = 0;
+
+    for (uint32_t i = 0; i < ubatch.n_tokens; i++) {
+        if (ubatch.output[i]) {
+            llama_seq_id seq_id = ubatch.seq_id[i][0];
+            seq_to_logit_row[seq_id] = logit_row_idx;
+            logit_row_idx++;
+        }
+    }
+    if (seq_to_logit_row.empty()) {
+        return;
+    }
+
+    // res->t_logits will contain logits for all tokens that specied that want
+    // logits calculated (logits=1 or output=1)
+    ggml_tensor * logits_t = res->t_logits;
+    GGML_ASSERT(res->t_logits != nullptr && "missing t_logits tensor");
+
+    const int n_vocab = llama_vocab_n_tokens(llama_model_get_vocab(&model));
+    GGML_ASSERT(logits_t->ne[0] == n_vocab);
+
+    auto inp_sampling = std::make_unique<llm_graph_input_sampling>(n_vocab, false, samplers);
+
+    for (const auto & [seq_id, sampler] : samplers) {
+        auto it = seq_to_logit_row.find(seq_id);
+        GGML_ASSERT(it != seq_to_logit_row.end());
+        const int32_t row_idx = it->second;
+
+        ggml_tensor * logits_seq = ggml_view_1d(ctx0, logits_t, n_vocab, row_idx * logits_t->nb[1]);
+        ggml_format_name(logits_seq, "logits_seq_%d", seq_id);
+
+        struct llama_sampler_ggml_data ggml_data = {
+            /*.logits         =*/ logits_seq,
+            /*.probs          =*/ nullptr,
+            /*.sampled_token  =*/ nullptr,
+            /*.filtered_ids   =*/ nullptr,
+        };
+
+        llama_sampler_apply_ggml(sampler, ctx0, gf, &ggml_data);
+
+        if (ggml_data.sampled_token != nullptr) {
+            res->t_sampled_tokens[seq_id] = ggml_data.sampled_token;
+
+            llama_sampler_accept_ggml(sampler, ctx0, gf, ggml_data.sampled_token);
+
+            ggml_build_forward_expand(gf, ggml_data.sampled_token);
+        } else if  (ggml_data.probs != nullptr) {
+            res->t_sampled_probs[seq_id] = ggml_data.probs;
+            ggml_build_forward_expand(gf, ggml_data.probs);
+        } else if (ggml_data.logits != logits_seq) {
+            res->t_sampled_logits[seq_id] = ggml_data.logits;
+            ggml_build_forward_expand(gf, res->t_sampled_logits[seq_id]);
+        }
+
+        if (ggml_data.filtered_ids != nullptr) {
+            res->t_sampled_token_ids[seq_id] = ggml_data.filtered_ids;
+            ggml_build_forward_expand(gf, ggml_data.filtered_ids);
+        }
+    }
+
+
+    res->add_input(std::move(inp_sampling));
 }
 
 int32_t llama_relative_position_bucket(llama_pos x, llama_pos y, uint64_t n_buckets, bool bidirectional) {
