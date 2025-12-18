@@ -202,20 +202,21 @@ static bool compare_token_data(const llama_token_data_array & a,
     max_diff_l     = 0.0;
     mismatch_count = 0;
 
+    bool test_passed = true;
     if (std::abs(static_cast<int>(a.size) - static_cast<int>(b.size)) > size_tol) {
         fprintf(stderr, "Size mismatch: %zu vs %zu\n", a.size, b.size);
-        return false;
+        test_passed = false;
     }
 
     if (a.sorted != b.sorted) {
         fprintf(stderr, "Sorted flag mismatch: %d vs %d\n", a.sorted, b.sorted);
-        return false;
+        test_passed = false;
     }
 
     if (a.selected != b.selected &&
         std::abs(static_cast<int>(a.selected) - static_cast<int>(b.selected)) > selected_tol) {
         fprintf(stderr, "Selected token mismatch: %ld vs %ld\n", a.selected, b.selected);
-        return false;
+        test_passed = false;
     }
 
     for (size_t i = 0; i < std::min(a.size, b.size); i++) {
@@ -232,7 +233,7 @@ static bool compare_token_data(const llama_token_data_array & a,
         max_diff_l    = std::max(max_diff_l, diff_l);
     }
 
-    return mismatch_count == 0 && max_diff_p < tolerance && max_diff_l < tolerance;
+    return test_passed && mismatch_count == 0 && max_diff_p < tolerance && max_diff_l < tolerance;
 }
 
 // Test greedy sampler
