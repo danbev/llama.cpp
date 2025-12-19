@@ -1508,6 +1508,9 @@ static void llama_sampler_top_p_backend_apply(
     data->logits = ggml_add(ctx, sorted_logits, top_p_bias);
     ggml_set_name(data->logits, "top_p_logits");
 
+    data->probs = ggml_mul(ctx, softmax, mask);
+    ggml_set_name(data->probs, "top_p_probs");
+
     GGML_UNUSED(gf);
 }
 

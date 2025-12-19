@@ -166,6 +166,8 @@ static llama_token_data_array infer_sampler_on_backend(ggml_backend_t           
                 td.p = 0.0f;
             }
             data_backend_out.push_back(td);
+        } else {
+            assert(probs_backend[i] == 0.0f);
         }
     }
     bool  is_sorted = true;
