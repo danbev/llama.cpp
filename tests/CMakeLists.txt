@@ -222,6 +222,8 @@ llama_build_and_test(test-backend-ops.cpp)
 llama_build_and_test(test-model-load-cancel.cpp  LABEL "model")
 llama_build_and_test(test-autorelease.cpp        LABEL "model")
 
+llama_build(test-backend-sampler-compare.cpp)
+
 llama_build_and_test(test-backend-sampler.cpp       LABEL "model")
 target_include_directories(test-backend-sampler PRIVATE ${PROJECT_SOURCE_DIR}/src)
 llama_test(test-backend-sampler NAME test-backend-sampler-greedy       ARGS --test greedy)
