@@ -27,10 +27,27 @@
       }
     },
     {
+      "name": "cuda-89-release",
+      "displayName": "Local RTX 4090 (Arch 89) Release",
+      "inherits": ["danbev-cuda-base", "release"],
+      "cacheVariables": {
+        "CMAKE_CUDA_ARCHITECTURES": "89"
+      }
+    },
+    {
       "name": "dgx-spark-debug",
       "displayName": "DGX Spark Debug",
       "inherits": ["danbev-cuda-base", "debug"],
       "description": "Standard debug build for DGX, auto-detects arch",
+      "cacheVariables": {
+        "GGML_NATIVE": "ON"
+      }
+    },
+    {
+      "name": "dgx-spark-release",
+      "displayName": "DGX Spark Release",
+      "inherits": ["danbev-cuda-base", "release"],
+      "description": "Standard release build for DGX, auto-detects arch",
       "cacheVariables": {
         "GGML_NATIVE": "ON"
       }
@@ -43,8 +60,18 @@
       "jobs": 8
     },
     {
+      "name": "cuda-89-release",
+      "configurePreset": "cuda-89-release",
+      "jobs": 8
+    },
+    {
       "name": "dgx-spark-debug",
       "configurePreset": "dgx-spark-debug",
+      "jobs": 12
+    },
+    {
+      "name": "dgx-spark-release",
+      "configurePreset": "dgx-spark-release",
       "jobs": 12
     }
   ],
@@ -57,11 +84,27 @@
       ]
     },
     {
+      "name": "dgx-spark-release",
+      "steps": [
+        { "type": "configure", "name": "dgx-spark-release" },
+        { "type": "build",     "name": "dgx-spark-release" }
+      ]
+    },
+    {
       "name": "cuda-89-debug",
       "steps": [
         { "type": "configure", "name": "cuda-89-debug" },
         { "type": "build",     "name": "cuda-89-debug" }
       ]
+    },
+    {
+      "name": "cuda-89-release",
+      "steps": [
+        { "type": "configure", "name": "cuda-89-release" },
+        { "type": "build",     "name": "cuda-89-release" }
+      ]
     }
   ]
 }
+
+
