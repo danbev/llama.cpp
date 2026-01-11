@@ -1,0 +1,67 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "danbev-cuda-base",
+      "hidden": true,
+      "inherits": "base",
+      "description": "Common flags for all my CUDA builds",
+      "cacheVariables": {
+        "LLAMA_CURL": "ON",
+        "GGML_CUDA": "ON",
+        "GGML_CPU_AARCH64": "OFF",
+        "GGML_CUDA_F16": "ON",
+        "GGML_NATIVE": "ON",
+        "LLAMA_BUILD_TESTS": "ON",
+        "LLAMA_BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "cuda-89-debug",
+      "displayName": "Local RTX 4090 (Arch 89)",
+      "inherits": ["danbev-cuda-base", "debug"],
+      "cacheVariables": {
+        "CMAKE_CUDA_ARCHITECTURES": "89",
+        "GGML_CUDA_DEBUG": "OFF",
+        "CMAKE_CUDA_FLAGS": "-G -g"
+      }
+    },
+    {
+      "name": "dgx-spark-debug",
+      "displayName": "DGX Spark Debug",
+      "inherits": ["danbev-cuda-base", "debug"],
+      "description": "Standard debug build for DGX, auto-detects arch",
+      "cacheVariables": {
+        "GGML_NATIVE": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "cuda-89-debug",
+      "configurePreset": "cuda-89-debug",
+      "jobs": 8
+    },
+    {
+      "name": "dgx-spark-debug",
+      "configurePreset": "dgx-spark-debug",
+      "jobs": 12
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "dgx-spark-debug",
+      "steps": [
+        { "type": "configure", "name": "dgx-spark-debug" },
+        { "type": "build",     "name": "dgx-spark-debug" }
+      ]
+    },
+    {
+      "name": "cuda-89-debug",
+      "steps": [
+        { "type": "configure", "name": "cuda-89-debug" },
+        { "type": "build",     "name": "cuda-89-debug" }
+      ]
+    }
+  ]
+}
