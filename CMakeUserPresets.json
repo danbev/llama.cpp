@@ -2,6 +2,33 @@
   "version": 6,
   "configurePresets": [
     {
+      "name": "danbev-cpu-base",
+      "hidden": true,
+      "inherits": "base",
+      "description": "Common flags for all my CPU builds",
+      "cacheVariables": {
+        "LLAMA_CURL": "ON",
+        "GGML_NATIVE": "ON",
+        "LLAMA_BUILD_TESTS": "ON",
+        "LLAMA_BUILD_EXAMPLES": "ON",
+        "LLAMA_BUILD_SERVER": "ON"
+      }
+    },
+    {
+      "name": "cpu-debug",
+      "displayName": "Local CPU Debug build",
+      "inherits": ["danbev-cpu-base", "debug"],
+      "cacheVariables": {
+      }
+    },
+    {
+      "name": "cpu-release",
+      "displayName": "Local CPU Release build",
+      "inherits": ["danbev-cpu-base", "release"],
+      "cacheVariables": {
+      }
+    },
+    {
       "name": "danbev-cuda-base",
       "hidden": true,
       "inherits": "base",
@@ -51,9 +78,45 @@
       "cacheVariables": {
         "GGML_NATIVE": "ON"
       }
+    },
+    {
+      "name": "danbev-webgpu-base",
+      "hidden": true,
+      "inherits": "base",
+      "description": "Common flags for all my WebGPU builds",
+      "cacheVariables": {
+        "GGML_WEBGPU": "ON",
+        "GGML_METAL": "OFF",
+        "GGML_BLAS": "OFF",
+        "LLAMA_CURL": "OFF",
+        "LLAMA_BUILD_TESTS": "ON",
+        "LLAMA_BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "webgpu-debug",
+      "displayName": "WebGPU Debug",
+      "inherits": ["danbev-webgpu-base", "debug"],
+      "description": "WebGPU debug build with Dawn"
+    },
+    {
+      "name": "webgpu-release",
+      "displayName": "WebGPU Release",
+      "inherits": ["danbev-webgpu-base", "release"],
+      "description": "WebGPU release build with Dawn"
     }
   ],
   "buildPresets": [
+    {
+      "name": "cpu-debug",
+      "configurePreset": "cpu-debug",
+      "jobs": 8
+    },
+    {
+      "name": "cpu-release",
+      "configurePreset": "cpu-release",
+      "jobs": 8
+    },
     {
       "name": "cuda-89-debug",
       "configurePreset": "cuda-89-debug",
@@ -73,6 +136,16 @@
       "name": "dgx-spark-release",
       "configurePreset": "dgx-spark-release",
       "jobs": 12
+    },
+    {
+      "name": "webgpu-debug",
+      "configurePreset": "webgpu-debug",
+      "jobs": 8
+    },
+    {
+      "name": "webgpu-release",
+      "configurePreset": "webgpu-release",
+      "jobs": 8
     }
   ],
   "workflowPresets": [
@@ -102,6 +175,34 @@
       "steps": [
         { "type": "configure", "name": "cuda-89-release" },
         { "type": "build",     "name": "cuda-89-release" }
+      ]
+    },
+    {
+      "name": "webgpu-debug",
+      "steps": [
+        { "type": "configure", "name": "webgpu-debug" },
+        { "type": "build",     "name": "webgpu-debug" }
+      ]
+    },
+    {
+      "name": "webgpu-release",
+      "steps": [
+        { "type": "configure", "name": "webgpu-release" },
+        { "type": "build",     "name": "webgpu-release" }
+      ]
+    },
+    {
+      "name": "cpu-debug",
+      "steps": [
+        { "type": "configure", "name": "cpu-debug" },
+        { "type": "build",     "name": "cpu-debug" }
+      ]
+    },
+    {
+      "name": "cpu-release",
+      "steps": [
+        { "type": "configure", "name": "cpu-release" },
+        { "type": "build",     "name": "cpu-release" }
       ]
     }
   ]
