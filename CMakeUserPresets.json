@@ -6,6 +6,7 @@
       "hidden": true,
       "inherits": "base",
       "description": "Common flags for all my CPU builds",
+      "generator": "Ninja",
       "cacheVariables": {
         "LLAMA_CURL": "ON",
         "GGML_NATIVE": "ON",
@@ -17,22 +18,19 @@
     {
       "name": "cpu-debug",
       "displayName": "Local CPU Debug build",
-      "inherits": ["danbev-cpu-base", "debug"],
-      "cacheVariables": {
-      }
+      "inherits": ["danbev-cpu-base", "debug"]
     },
     {
       "name": "cpu-release",
       "displayName": "Local CPU Release build",
-      "inherits": ["danbev-cpu-base", "release"],
-      "cacheVariables": {
-      }
+      "inherits": ["danbev-cpu-base", "release"]
     },
     {
       "name": "danbev-cuda-base",
       "hidden": true,
       "inherits": "base",
       "description": "Common flags for all my CUDA builds",
+      "generator": "Ninja",
       "cacheVariables": {
         "LLAMA_CURL": "ON",
         "GGML_CUDA": "ON",
@@ -45,7 +43,7 @@
     },
     {
       "name": "cuda-89-debug",
-      "displayName": "Local RTX 4090 (Arch 89)",
+      "displayName": "Local RTX 4070 (Arch 89)",
       "inherits": ["danbev-cuda-base", "debug"],
       "cacheVariables": {
         "CMAKE_CUDA_ARCHITECTURES": "89",
@@ -55,7 +53,7 @@
     },
     {
       "name": "cuda-89-release",
-      "displayName": "Local RTX 4090 (Arch 89) Release",
+      "displayName": "Local RTX 4070 (Arch 89) Release",
       "inherits": ["danbev-cuda-base", "release"],
       "cacheVariables": {
         "CMAKE_CUDA_ARCHITECTURES": "89"
@@ -84,6 +82,7 @@
       "hidden": true,
       "inherits": "base",
       "description": "Common flags for all my WebGPU builds",
+      "generator": "Ninja",
       "cacheVariables": {
         "GGML_WEBGPU": "ON",
         "GGML_METAL": "OFF",
@@ -108,44 +107,49 @@
   ],
   "buildPresets": [
     {
+      "name": "base-build",
+      "hidden": true,
+      "jobs": 12
+    },
+    {
       "name": "cpu-debug",
       "configurePreset": "cpu-debug",
-      "jobs": 8
+      "inherits": "base-build"
     },
     {
       "name": "cpu-release",
       "configurePreset": "cpu-release",
-      "jobs": 8
+      "inherits": "base-build"
     },
     {
       "name": "cuda-89-debug",
       "configurePreset": "cuda-89-debug",
-      "jobs": 8
+      "inherits": "base-build"
     },
     {
       "name": "cuda-89-release",
       "configurePreset": "cuda-89-release",
-      "jobs": 8
+      "inherits": "base-build"
     },
     {
       "name": "dgx-spark-debug",
       "configurePreset": "dgx-spark-debug",
-      "jobs": 12
+      "inherits": "base-build"
     },
     {
       "name": "dgx-spark-release",
       "configurePreset": "dgx-spark-release",
-      "jobs": 12
+      "inherits": "base-build"
     },
     {
       "name": "webgpu-debug",
       "configurePreset": "webgpu-debug",
-      "jobs": 8
+      "inherits": "base-build"
     },
     {
       "name": "webgpu-release",
       "configurePreset": "webgpu-release",
-      "jobs": 8
+      "inherits": "base-build"
     }
   ],
   "workflowPresets": [
@@ -153,59 +157,57 @@
       "name": "dgx-spark-debug",
       "steps": [
         { "type": "configure", "name": "dgx-spark-debug" },
-        { "type": "build",     "name": "dgx-spark-debug" }
+        { "type": "build",      "name": "dgx-spark-debug" }
       ]
     },
     {
       "name": "dgx-spark-release",
       "steps": [
         { "type": "configure", "name": "dgx-spark-release" },
-        { "type": "build",     "name": "dgx-spark-release" }
+        { "type": "build",      "name": "dgx-spark-release" }
       ]
     },
     {
       "name": "cuda-89-debug",
       "steps": [
         { "type": "configure", "name": "cuda-89-debug" },
-        { "type": "build",     "name": "cuda-89-debug" }
+        { "type": "build",      "name": "cuda-89-debug" }
       ]
     },
     {
       "name": "cuda-89-release",
       "steps": [
         { "type": "configure", "name": "cuda-89-release" },
-        { "type": "build",     "name": "cuda-89-release" }
+        { "type": "build",      "name": "cuda-89-release" }
       ]
     },
     {
       "name": "webgpu-debug",
       "steps": [
         { "type": "configure", "name": "webgpu-debug" },
-        { "type": "build",     "name": "webgpu-debug" }
+        { "type": "build",      "name": "webgpu-debug" }
       ]
     },
     {
       "name": "webgpu-release",
       "steps": [
         { "type": "configure", "name": "webgpu-release" },
-        { "type": "build",     "name": "webgpu-release" }
+        { "type": "build",      "name": "webgpu-release" }
       ]
     },
     {
       "name": "cpu-debug",
       "steps": [
         { "type": "configure", "name": "cpu-debug" },
-        { "type": "build",     "name": "cpu-debug" }
+        { "type": "build",      "name": "cpu-debug" }
       ]
     },
     {
       "name": "cpu-release",
       "steps": [
         { "type": "configure", "name": "cpu-release" },
-        { "type": "build",     "name": "cpu-release" }
+        { "type": "build",      "name": "cpu-release" }
       ]
     }
   ]
 }
-
-
