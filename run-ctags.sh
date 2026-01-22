@@ -1,0 +1,33 @@
+#/usr/local/bin/ctags -V -R \
+/usr/local/bin/ctags -R \
+    --languages=C,C++,CUDA \
+    --c++-kinds=+p \
+    --CUDA-kinds=+p \
+    --fields=+iaS \
+    --extras=+q \
+    --excmd=number \
+    --langmap=CUDA:+.cuh \
+    -I __device__+ \
+    -I __forceinline__+ \
+    -I __host__+ \
+    -I __global__+ \
+    -I __restrict__+ \
+    --exclude=tags \
+    --exclude=build \
+    --exclude=cmake \
+    --exclude=scripts \
+    --exclude=tags \
+    --exclude=ci \
+    --exclude=docs \
+    --exclude=ggml/src/ggml-cuda/template-instances \
+    --exclude=ggml/src/ggml-vulkan/vulkan-shaders \
+    --exclude=ggml/src/ggml-kompute/kompute-shaders \
+    --exclude=ggml/src/ggml-metal \
+    --exclude=ggml/src/ggml-opencl/kernels \
+    --exclude=ggml/examples/mnist/data \
+    --exclude=venv \
+    --exclude=./models \
+    --exclude=node_modules \
+    --exclude=tools/server/public \
+    --exclude=tools/server/webui/.svelte-kit \
+    .
