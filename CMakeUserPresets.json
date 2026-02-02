@@ -37,7 +37,7 @@
         "GGML_CUDA_F16": "ON",
         "GGML_NATIVE": "ON",
         "LLAMA_BUILD_TESTS": "ON",
-        "LLAMA_BUILD_EXAMPLES": "ON"
+        "LLAMA_BUILD_EXAMPLES": "ON",
         "LLAMA_BUILD_BORINGSSL": "ON"
       }
     },
