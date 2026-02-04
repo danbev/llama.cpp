@@ -31,6 +31,16 @@ target_compile_definitions(${TARGET} PRIVATE
 set(OPENSSL_NO_ASM ON CACHE BOOL "Disable OpenSSL ASM code when building BoringSSL or LibreSSL")
 
 if (LLAMA_BUILD_BORINGSSL)
+
+    if(LLAMA_FATAL_WARNINGS)
+        set(LLAMA_FATAL_WARNINGS_SAVED ${CMAKE_CXX_FLAGS})
+        string(REPLACE "-Werror" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+        string(REPLACE "-Werror" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter")
+    endif()
+
     set(FIPS OFF CACHE BOOL "Enable FIPS (BoringSSL)")
 
     set(BORINGSSL_GIT "https://boringssl.googlesource.com/boringssl" CACHE STRING "BoringSSL git repository")
@@ -72,6 +82,10 @@ if (LLAMA_BUILD_BORINGSSL)
 
     set(CPPHTTPLIB_OPENSSL_SUPPORT TRUE)
     target_link_libraries(${TARGET} PUBLIC ssl crypto)
+
+    if(LLAMA_FATAL_WARNINGS)
+        set(CMAKE_CXX_FLAGS ${LLAMA_FATAL_WARNINGS_SAVED})
+    endif()
 
 elseif (LLAMA_BUILD_LIBRESSL)
     set(LIBRESSL_VERSION "4.2.1" CACHE STRING "LibreSSL version")
