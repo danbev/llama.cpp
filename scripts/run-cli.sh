@@ -30,7 +30,6 @@ CMD_OPTIONS=(
 )
 
 echo "Running ${CMD} with options: ${CMD_OPTIONS[@]}"
-echo "Debug: ${USE_DEBUG}"
 
 cmake --build ${build_dir} -j12 --target ${CMD}
 
