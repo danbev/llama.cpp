@@ -87,6 +87,41 @@
       }
     },
     {
+      "name": "danbev-hip-base",
+      "hidden": true,
+      "inherits": "base",
+      "description": "Common flags for all my HIP/ROCm builds",
+      "generator": "Ninja",
+      "environment": {
+        "HIPCXX": "/opt/rocm-7.1.0/lib/llvm/bin/clang++",
+        "HIP_PATH": "/opt/rocm-7.1.0"
+      },
+      "cacheVariables": {
+        "GGML_HIP": "ON",
+        "CMAKE_PREFIX_PATH": "/opt/rocm-7.1.0",
+        "GGML_NATIVE": "ON",
+        "LLAMA_BUILD_TESTS": "ON",
+        "LLAMA_BUILD_EXAMPLES": "ON",
+        "LLAMA_BUILD_BORINGSSL": "ON"
+      }
+    },
+    {
+      "name": "hip-gfx1151-debug",
+      "displayName": "HIP gfx1151 Debug",
+      "inherits": ["danbev-hip-base", "debug"],
+      "cacheVariables": {
+        "AMDGPU_TARGETS": "gfx1151"
+      }
+    },
+    {
+      "name": "hip-gfx1151-release",
+      "displayName": "HIP gfx1151 Release",
+      "inherits": ["danbev-hip-base", "release"],
+      "cacheVariables": {
+        "AMDGPU_TARGETS": "gfx1151"
+      }
+    },
+    {
       "name": "danbev-webgpu-base",
       "hidden": true,
       "inherits": "base",
@@ -155,6 +190,16 @@
       "inherits": "base-build"
     },
     {
+      "name": "hip-gfx1151-debug",
+      "configurePreset": "hip-gfx1151-debug",
+      "inherits": "base-build"
+    },
+    {
+      "name": "hip-gfx1151-release",
+      "configurePreset": "hip-gfx1151-release",
+      "inherits": "base-build"
+    },
+    {
       "name": "webgpu-debug",
       "configurePreset": "webgpu-debug",
       "inherits": "base-build"
@@ -199,6 +244,20 @@
       "steps": [
         { "type": "configure", "name": "cuda-89-reldbg" },
         { "type": "build",      "name": "cuda-89-reldbg" }
+      ]
+    },
+    {
+      "name": "hip-gfx1151-debug",
+      "steps": [
+        { "type": "configure", "name": "hip-gfx1151-debug" },
+        { "type": "build",      "name": "hip-gfx1151-debug" }
+      ]
+    },
+    {
+      "name": "hip-gfx1151-release",
+      "steps": [
+        { "type": "configure", "name": "hip-gfx1151-release" },
+        { "type": "build",      "name": "hip-gfx1151-release" }
       ]
     },
     {
