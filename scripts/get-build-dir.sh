@@ -2,7 +2,7 @@
 
 get_build_dir() {
     local preset_name=$1
-    local llama_dir=${LLAMA_CPP_DIR:-"/home/danbev/work/llama.cpp"}
+    local llama_dir=${LLAMA_CPP_DIR:-$(pwd)}
     echo "$llama_dir/build-$preset_name"
 }
 
