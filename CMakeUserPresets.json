@@ -122,6 +122,57 @@
       }
     },
     {
+      "name": "win-cuda-89-debug",
+      "displayName": "Windows RTX 4070 (Arch 89) Debug",
+      "inherits": ["danbev-cuda-base", "debug"],
+      "cacheVariables": {
+        "CMAKE_CUDA_ARCHITECTURES": "89",
+        "GGML_CUDA_DEBUG": "OFF",
+        "CMAKE_CUDA_FLAGS": "-G -g"
+      }
+    },
+    {
+      "name": "win-cuda-89-release",
+      "displayName": "Windows RTX 4070 (Arch 89) Release",
+      "inherits": ["danbev-cuda-base", "release"],
+      "cacheVariables": {
+        "CMAKE_CUDA_ARCHITECTURES": "89"
+      }
+    },
+    {
+      "name": "win-cuda-89-reldbg",
+      "displayName": "Windows RTX 4070 (Arch 89) RelWithDebInfo",
+      "inherits": ["danbev-cuda-base", "reldbg"],
+      "cacheVariables": {
+        "CMAKE_CUDA_ARCHITECTURES": "89",
+        "CMAKE_CUDA_FLAGS": "-g"
+      }
+    },
+    {
+      "name": "danbev-win-cpu-base",
+      "hidden": true,
+      "inherits": "base",
+      "description": "Common flags for all my Windows CPU builds",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "LLAMA_BUILD_TESTS": "ON",
+        "LLAMA_BUILD_EXAMPLES": "ON",
+        "LLAMA_BUILD_SERVER": "ON",
+        "LLAMA_BUILD_BORINGSSL": "ON",
+        "LLAMA_LLGUIDANCE": "ON"
+      }
+    },
+    {
+      "name": "win-cpu-debug",
+      "displayName": "Windows CPU Debug build",
+      "inherits": ["danbev-win-cpu-base", "debug"]
+    },
+    {
+      "name": "win-cpu-release",
+      "displayName": "Windows CPU Release build",
+      "inherits": ["danbev-win-cpu-base", "release"]
+    },
+    {
       "name": "danbev-webgpu-base",
       "hidden": true,
       "inherits": "base",
@@ -200,6 +251,31 @@
       "inherits": "base-build"
     },
     {
+      "name": "win-cuda-89-debug",
+      "configurePreset": "win-cuda-89-debug",
+      "inherits": "base-build"
+    },
+    {
+      "name": "win-cuda-89-release",
+      "configurePreset": "win-cuda-89-release",
+      "inherits": "base-build"
+    },
+    {
+      "name": "win-cuda-89-reldbg",
+      "configurePreset": "win-cuda-89-reldbg",
+      "inherits": "base-build"
+    },
+    {
+      "name": "win-cpu-debug",
+      "configurePreset": "win-cpu-debug",
+      "inherits": "base-build"
+    },
+    {
+      "name": "win-cpu-release",
+      "configurePreset": "win-cpu-release",
+      "inherits": "base-build"
+    },
+    {
       "name": "webgpu-debug",
       "configurePreset": "webgpu-debug",
       "inherits": "base-build"
@@ -258,6 +334,41 @@
       "steps": [
         { "type": "configure", "name": "hip-gfx1151-release" },
         { "type": "build",      "name": "hip-gfx1151-release" }
+      ]
+    },
+    {
+      "name": "win-cuda-89-debug",
+      "steps": [
+        { "type": "configure", "name": "win-cuda-89-debug" },
+        { "type": "build",      "name": "win-cuda-89-debug" }
+      ]
+    },
+    {
+      "name": "win-cuda-89-release",
+      "steps": [
+        { "type": "configure", "name": "win-cuda-89-release" },
+        { "type": "build",      "name": "win-cuda-89-release" }
+      ]
+    },
+    {
+      "name": "win-cuda-89-reldbg",
+      "steps": [
+        { "type": "configure", "name": "win-cuda-89-reldbg" },
+        { "type": "build",      "name": "win-cuda-89-reldbg" }
+      ]
+    },
+    {
+      "name": "win-cpu-debug",
+      "steps": [
+        { "type": "configure", "name": "win-cpu-debug" },
+        { "type": "build",      "name": "win-cpu-debug" }
+      ]
+    },
+    {
+      "name": "win-cpu-release",
+      "steps": [
+        { "type": "configure", "name": "win-cpu-release" },
+        { "type": "build",      "name": "win-cpu-release" }
       ]
     },
     {
