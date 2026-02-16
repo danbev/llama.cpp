@@ -173,6 +173,26 @@
       "inherits": ["danbev-win-cpu-base", "release"]
     },
     {
+      "name": "win-clang-debug",
+      "displayName": "Windows Clang Debug",
+      "inherits": ["base", "x64-windows-llvm", "debug"],
+      "cacheVariables": {
+        "LLAMA_BUILD_TESTS": "ON",
+        "LLAMA_BUILD_EXAMPLES": "ON",
+        "LLAMA_BUILD_SERVER": "ON"
+      }
+    },
+    {
+      "name": "win-clang-release",
+      "displayName": "Windows Clang Release",
+      "inherits": ["base", "x64-windows-llvm", "release"],
+      "cacheVariables": {
+        "LLAMA_BUILD_TESTS": "ON",
+        "LLAMA_BUILD_EXAMPLES": "ON",
+        "LLAMA_BUILD_SERVER": "ON"
+      }
+    },
+    {
       "name": "danbev-webgpu-base",
       "hidden": true,
       "inherits": "base",
@@ -276,6 +296,16 @@
       "inherits": "base-build"
     },
     {
+      "name": "win-clang-debug",
+      "configurePreset": "win-clang-debug",
+      "inherits": "base-build"
+    },
+    {
+      "name": "win-clang-release",
+      "configurePreset": "win-clang-release",
+      "inherits": "base-build"
+    },
+    {
       "name": "webgpu-debug",
       "configurePreset": "webgpu-debug",
       "inherits": "base-build"
@@ -369,6 +399,20 @@
       "steps": [
         { "type": "configure", "name": "win-cpu-release" },
         { "type": "build",      "name": "win-cpu-release" }
+      ]
+    },
+    {
+      "name": "win-clang-debug",
+      "steps": [
+        { "type": "configure", "name": "win-clang-debug" },
+        { "type": "build",      "name": "win-clang-debug" }
+      ]
+    },
+    {
+      "name": "win-clang-release",
+      "steps": [
+        { "type": "configure", "name": "win-clang-release" },
+        { "type": "build",      "name": "win-clang-release" }
       ]
     },
     {
