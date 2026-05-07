@@ -2030,6 +2030,28 @@ static void func_args_not_string(json & messages) {
 
 }
 
+static void gemma4_parse_tool_response_content(json & messages) {
+    for (auto & msg : messages) {
+        if (msg.value("role", "") != "tool" || !msg.contains("content")) {
+            continue;
+        }
+
+        auto & content = msg.at("content");
+        if (!content.is_string()) {
+            continue;
+        }
+
+        try {
+            auto parsed = json::parse(content.get<std::string>());
+            if (parsed.is_object()) {
+                content = std::move(parsed);
+            }
+        } catch (...) {
+            // ignore and let format_tool_response_block wrap it in value.
+        }
+    }
+}
+
 static json common_chat_extra_context() {
     json ctx = json::object();
     std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
@@ -2109,6 +2131,8 @@ std::optional<common_chat_params> common_chat_try_specialized_template(
             LOG_WRN("%s: detected an outdated gemma4 chat template, applying compatibility workarounds. "
                     "Consider updating to the official template.\n", __func__);
             workaround::convert_tool_responses_gemma4(params.messages);
+        } else {
+            gemma4_parse_tool_response_content(params.messages);
         }
         return common_chat_params_init_gemma4(tmpl, params);
     }
