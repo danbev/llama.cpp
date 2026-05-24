@@ -152,6 +152,10 @@ def parse_args() -> argparse.Namespace:
         "--fp8-as-q8", action="store_true",
         help="Store tensors dequantized from FP8 as Q8_0 instead of BF16/F16.",
     )
+    parser.add_argument(
+        "--hef", type=Path, default=None,
+        help="Path to the Hailo HEF binary to embed as a tensor (required for Hailo10H models).",
+    )
 
     args = parser.parse_args()
     if not args.print_supported_models and args.model is None:
@@ -226,7 +230,13 @@ def main() -> None:
         output_type = ftype_map[args.outtype]
         model_type = ModelType.MMPROJ if args.mmproj else ModelType.TEXT
         hparams = ModelBase.load_hparams(dir_model, is_mistral_format)
-        if not is_mistral_format:
+
+        if args.hef is not None:
+            from conversion.hailo import HailoModel
+            model_class = HailoModel
+            model_class.hef_path = args.hef
+            logger.info("Model architecture: Hailo10H")
+        elif not is_mistral_format:
             model_architecture = get_model_architecture(hparams, model_type)
             logger.info(f"Model architecture: {model_architecture}")
             try:
