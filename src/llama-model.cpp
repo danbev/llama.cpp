@@ -17,6 +17,7 @@
 #include "llama-memory-hybrid.h"
 #include "llama-memory-hybrid-iswa.h"
 #include "llama-memory-hybrid-idx.h"
+#include "llama-memory-no-op.h"
 #include "llama-memory-recurrent.h"
 
 #include "llama.h"
@@ -98,6 +99,8 @@ static llama_model * llama_model_mapping(llm_arch arch, const llama_model_params
             return new llama_model_qwen(params);
         case LLM_ARCH_QWEN2:
             return new llama_model_qwen2(params);
+        case LLM_ARCH_HAILO:
+            return new llama_model_hailo(params);
         case LLM_ARCH_DREAM:
             return new llama_model_dream(params);
         case LLM_ARCH_LLADA:
@@ -3214,6 +3217,10 @@ llama_memory_i * llama_model::create_memory(const llama_memory_params & params, 
                 }
             }
             [[fallthrough]];
+        case LLM_ARCH_HAILO:
+            {
+                res = new llama_memory_no_op(std::max((uint32_t) 1, cparams.n_seq_max));
+            } break;
         // Models that need standard caching should rely on recurrent/hybrid
         // checks
         default:
@@ -3698,6 +3705,7 @@ llama_rope_type llama_model_rope_type(const llama_model * model) {
         case LLM_ARCH_BITNET:
         case LLM_ARCH_QWEN:
         case LLM_ARCH_QWEN2:
+        case LLM_ARCH_HAILO:
         case LLM_ARCH_DREAM:
         case LLM_ARCH_QWEN2MOE:
         case LLM_ARCH_QWEN3:

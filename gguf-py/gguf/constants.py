@@ -630,6 +630,7 @@ class MODEL_ARCH(IntEnum):
     VLLM_DECISION2   = auto()
     CLOVER_MOE       = auto()
     QWEN4EXP         = auto()
+    HAILO            = auto()
     PHI2             = auto()
     PHI3             = auto()
     PHIMOE           = auto()
@@ -1543,6 +1544,7 @@ MODEL_ARCH_NAMES: dict[MODEL_ARCH, str] = {
     MODEL_ARCH.VLLM_DECISION2:   "vllm-decision2",
     MODEL_ARCH.CLOVER_MOE:       "clover_moe",
     MODEL_ARCH.QWEN4EXP:         "qwen4exp",
+    MODEL_ARCH.HAILO:            "hailo",
     MODEL_ARCH.PHI2:             "phi2",
     MODEL_ARCH.PHI3:             "phi3",
     MODEL_ARCH.PHIMOE:           "phimoe",
@@ -6611,6 +6613,8 @@ MODEL_TENSORS: dict[MODEL_ARCH, list[MODEL_TENSOR]] = {
         MODEL_TENSOR.MUDD_DOWN,
         MODEL_TENSOR.MUDD_UP,
     ],
+    # TODO
+    MODEL_ARCH.HAILO: [],
 }
 
 # tensors that will not be serialized
