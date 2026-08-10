@@ -90,7 +90,7 @@ jobs:
 
   macos-cpu:
     needs: [check-release, get-version]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
     strategy:
       matrix:
         include:
@@ -178,10 +178,10 @@ jobs:
         include:
           - build: 'x64'
             os: ubuntu-22.04
-          - build: 'arm64'
-            os: ubuntu-24.04-arm
-          - build: 's390x'
-            os: ubuntu-24.04-s390x
+          #- build: 'arm64'
+            #os: ubuntu-24.04-arm
+          #- build: 's390x'
+            #os: ubuntu-24.04-s390x
 
     runs-on: ${{ matrix.os }}
 
@@ -259,7 +259,7 @@ jobs:
 
   ubuntu-vulkan:
     needs: [check-release, get-version]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
 
     strategy:
       matrix:
@@ -345,7 +345,7 @@ jobs:
 
   android-arm64:
     needs: [check-release, get-version]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
 
     runs-on: ubuntu-latest
 
@@ -438,7 +438,7 @@ jobs:
 
   ubuntu-24-openvino:
     needs: [check-release, get-version]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
 
     runs-on: ubuntu-24.04
 
@@ -557,7 +557,7 @@ jobs:
 
   windows-openvino:
     needs: [check-release]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
 
     runs-on: windows-2022
 
@@ -686,7 +686,7 @@ jobs:
 
   windows-cpu:
     needs: [check-release]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
 
     runs-on: windows-2025-vs2026
 
@@ -754,7 +754,7 @@ jobs:
 
   windows:
     needs: [check-release]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
 
     runs-on: windows-2025
 
@@ -853,7 +853,7 @@ jobs:
 
   windows-cuda:
     needs: [check-release]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
 
     runs-on: windows-2022
 
@@ -940,7 +940,7 @@ jobs:
 
   windows-sycl:
     needs: [check-release]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
 
     runs-on: windows-2022
 
@@ -1050,7 +1050,7 @@ jobs:
 
   ubuntu-24-sycl:
     needs: [check-release]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
 
     strategy:
       matrix:
@@ -1143,7 +1143,7 @@ jobs:
 
   ubuntu-22-rocm:
     needs: [check-release, get-version]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
 
     runs-on: ubuntu-22.04
 
@@ -1263,7 +1263,7 @@ jobs:
 
   windows-hip:
     needs: [check-release, get-version]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
 
     runs-on: windows-2022
 
@@ -1386,7 +1386,7 @@ jobs:
 
   ios-xcode:
     needs: [check-release, get-version]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
     runs-on: macos-26
 
     steps:
@@ -1536,7 +1536,7 @@ jobs:
 
   ui-build:
     needs: [check-release, get-version]
-    if: ${{ needs.check-release.outputs.should_release == 'true' }}
+    if: false
     uses: ./.github/workflows/ui-build.yml
     with:
       hf_ui_version: ${{ needs.get-version.outputs.ui_version }}
@@ -1553,22 +1553,22 @@ jobs:
 
     needs:
       - get-version
-      - windows
-      - windows-cpu
-      - windows-cuda
-      #- windows-sycl
-      - windows-hip
-      - windows-openvino
-      - ubuntu-22-rocm
+      #- windows
+      #- windows-cpu
+      #- windows-cuda
+      #- windows-sycl  // should be commented out
+      #- windows-hip
+      #- windows-openvino
+      #- ubuntu-22-rocm
       - ubuntu-cpu
-      - ubuntu-vulkan
-      - ubuntu-24-openvino
-      #- ubuntu-24-sycl
-      - android-arm64
-      - macos-cpu
-      - ios-xcode
-      #- openEuler-cann
-      - ui-build
+      #- ubuntu-vulkan
+      #- ubuntu-24-openvino
+      #- ubuntu-24-sycl  // should be commented out
+      #- android-arm64
+      #- macos-cpu
+      #- ios-xcode
+      #- openEuler-cann  // should be commented out.
+      #- ui-build
 
     outputs:
       tag_name: ${{ steps.tag.outputs.name }}
@@ -1595,50 +1595,19 @@ jobs:
         id: move_artifacts
         run: |
           mkdir -p release
-
-          echo "Adding CPU backend files to existing zips..."
-          for arch in x64 arm64; do
-            cpu_zip="artifact/llama-bin-win-cpu-${arch}.zip"
-            temp_dir=$(mktemp -d)
-            echo "Extracting CPU backend for $arch..."
-            unzip "$cpu_zip" -d "$temp_dir"
-
-            echo "Adding CPU files to $arch zips..."
-            for target_zip in artifact/llama-bin-win-*-${arch}.zip; do
-              if [[ "$target_zip" == "$cpu_zip" ]]; then
-                continue
-              fi
-              echo "Adding CPU backend to $(basename "$target_zip")"
-              realpath_target_zip=$(realpath "$target_zip")
-              (cd "$temp_dir" && zip -r "$realpath_target_zip" .)
-            done
-
-            rm -rf "$temp_dir"
-          done
-
-          echo "Renaming and moving zips to release..."
-          for zip_file in artifact/llama-bin-win-*.zip; do
-            base_name=$(basename "$zip_file" .zip)
-            zip_name="llama-${{ steps.tag.outputs.name }}-${base_name#llama-}.zip"
-            echo "Moving $zip_file to release/$zip_name"
-            mv "$zip_file" "release/$zip_name"
-          done
-
-          echo "Moving other artifacts..."
-          mv -v artifact/*.zip release
           mv -v artifact/*.tar.gz release
 
-      - name: Download UI build
-        id: download_ui
-        uses: actions/download-artifact@v7
-        with:
-          name: ui-build
-          path: ./ui-dist
+      #- name: Download UI build
+      #  id: download_ui
+      #  uses: actions/download-artifact@v7
+      #  with:
+      #    name: ui-build
+      #    path: ./ui-dist
 
-      - name: Package UI
-        id: package_ui
-        run: |
-          tar -czvf release/llama-${{ steps.tag.outputs.name }}-ui.tar.gz --transform "s,^\.,llama-${{ steps.tag.outputs.name }}," -C ./ui-dist .
+      #- name: Package UI
+      #  id: package_ui
+      #  run: |
+      #    tar -czvf release/llama-${{ steps.tag.outputs.name }}-ui.tar.gz --transform "s,^\.,llama-${{ steps.tag.outputs.name }}," -C ./ui-dist .
 
       - name: Create release
         id: create_release
