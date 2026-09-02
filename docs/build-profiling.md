@@ -99,6 +99,28 @@ Full = includes building Server, Tools, and Tests.
 UB   = unity build for models
 ```
 
+### Windows (x86_64)
+
+Environment:
+- Clang:  clang version 21.1.8 (LLVM, `C:\Program Files\LLVM`)
+- STL:    MSVC STL (Visual Studio 2022 Community 14.43.34808)
+- Target: x86_64-pc-windows-msvc
+
+```console
++------------------------+-----+------------+------------+------------+
+| Build                  | TUs | Frontend   | Backend    | Total      |
++------------------------+-----+------------+------------+------------+
+| Minimal, master        | 249 |   201.4 s  |   172.0 s  |   373.4 s  |
+| Full,    master        | 380 |   442.7 s  |   457.5 s  |   900.2 s  |
+| Minimal, with PCH + UB | 113 |   119.9 s  |   184.7 s  |   304.6 s  |
+| Full,    with PCH + UB | 248 |   245.4 s  |   372.0 s  |   617.4 s  |
++------------------------+-----+------------+------------+------------+
+
+PCH = precompiled header.
+Full = includes building Server, Tools, and Tests.
+UB   = unity build for models
+```
+
 ### Windows (ARM64)
 
 Environment:
