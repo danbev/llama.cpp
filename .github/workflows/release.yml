@@ -149,11 +149,6 @@ jobs:
         include:
           - build: 'x64'
             os: ubuntu-22.04
-          - build: 'arm64'
-            os: ubuntu-24.04-arm
-          - build: 's390x'
-            os: ubuntu-24.04-s390x
-
     runs-on: ${{ matrix.os }}
 
     permissions:
@@ -660,7 +655,6 @@ jobs:
       matrix:
         include:
           - arch: 'x64'
-          - arch: 'arm64'
 
     steps:
       - name: Clone
@@ -1563,21 +1557,8 @@ jobs:
     runs-on: ubuntu-slim
 
     needs:
-      - windows
       - windows-cpu
-      - windows-cuda
-      - windows-sycl
-      - windows-rocm
-      - windows-openvino
-      - ubuntu-24-rocm
       - ubuntu-cpu
-      - ubuntu-vulkan
-      - ubuntu-24-openvino
-      - ubuntu-24-sycl
-      - android-arm64
-      - macos-cpu
-      - ios-xcode
-      #- openEuler-cann
       - ui-build
 
     outputs:
@@ -1611,7 +1592,7 @@ jobs:
           # UI, ggml-cpu) - inject it into the other windows zips so that every archive
           # ships the same binaries, only with a different backend library on top
           echo "Injecting windows-cpu binaries (llama-server + CPU backend) into the backend zips..."
-          for arch in x64 arm64; do
+          for arch in x64; do
             cpu_zip="artifact/llama-bin-win-cpu-${arch}.zip"
             temp_dir=$(mktemp -d)
             echo "Extracting windows-cpu-${arch} package..."
@@ -1639,8 +1620,8 @@ jobs:
           done
 
           echo "Moving other artifacts..."
-          mv -v artifact/*.zip release
-          mv -v artifact/*.tar.gz release
+          find artifact -maxdepth 1 -name '*.zip'   -exec mv -v {} release \;
+          find artifact -maxdepth 1 -name '*.tar.gz' -exec mv -v {} release \;
 
       - name: Download UI build
         id: download_ui
