@@ -65,7 +65,7 @@ jobs:
       - name: Create nightly-tag.txt
         id: nightly_tag_file
         run: |
-          NIGHTLY_TAG="${{ steps.desc.outputs.nightly_tag }}"
+          NIGHTLY_TAG="${{ inputs.nightly_tag || steps.desc.outputs.nightly_tag }}"
           if [[ -z "${NIGHTLY_TAG}" ]]; then
             echo "Warning: no nightly tag found for the release commit - nightly-tag.txt will not be created"
             echo "create=false" >> "$GITHUB_OUTPUT"
@@ -121,12 +121,12 @@ jobs:
             });
 
       - name: Re-tag container images with release version
-        if: ${{ github.event.inputs.dry_run == 'false' && steps.desc.outputs.nightly_tag != '' }}
+        if: ${{ github.event.inputs.dry_run == 'false' && (inputs.nightly_tag != '' || steps.desc.outputs.nightly_tag != '') }}
         env:
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           VERSION="${{ steps.checks.outputs.version }}"
-          NIGHTLY_TAG="${{ steps.desc.outputs.nightly_tag }}"
+          NIGHTLY_TAG="${{ inputs.nightly_tag || steps.desc.outputs.nightly_tag }}"
           REPO_OWNER="${GITHUB_REPOSITORY_OWNER,,}"
           IMAGE_REPO="ghcr.io/${REPO_OWNER}/${{ github.event.repository.name }}"
 
