@@ -13,6 +13,11 @@ on:
         required: true
         type: boolean
         default: true
+      nightly_tag:
+        description: 'Override nightly tag for container image check (e.g. b10801, for testing only)'
+        required: false
+        default: ''
+        type: string
 
 env:
   GH_TOKEN: ${{ github.token }}
@@ -39,6 +44,7 @@ jobs:
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           RELEASE_BRANCH: ${{ github.ref_name }}
+          NIGHTLY_TAG_OVERRIDE: ${{ inputs.nightly_tag }}
 
       - name: Create release tag
         if: ${{ github.event.inputs.dry_run == 'false' }}

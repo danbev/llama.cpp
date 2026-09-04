@@ -46,7 +46,10 @@ SHA=$(git rev-parse HEAD)
 # (skipped for testing)
 
 echo "Checking container images for commit ${SHA}..."
-NIGHTLY_TAG="$(git tag --points-at "${SHA}" | grep -E '(^|-)b[0-9]+(-[0-9a-f]{7})?$' | head -n 1 || true)"
+NIGHTLY_TAG="${NIGHTLY_TAG_OVERRIDE:-}"
+if [[ -z "${NIGHTLY_TAG}" ]]; then
+    NIGHTLY_TAG="$(git tag --points-at "${SHA}" | grep -E '(^|-)b[0-9]+(-[0-9a-f]{7})?$' | head -n 1 || true)"
+fi
 if [[ -z "${NIGHTLY_TAG}" ]]; then
     echo "Warning: no nightly tag points at ${SHA} - skipping container image check"
 elif [[ -z "${GITHUB_REPOSITORY:-}" ]]; then
