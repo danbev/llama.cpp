@@ -555,6 +555,9 @@ static constexpr __host__ __device__ int calc_nwarps(ggml_type type, int ncols_d
         }
     }
     if (table_id == MMVQ_PARAMETERS_GB10) {
+        if ((type == GGML_TYPE_Q4_K || type == GGML_TYPE_Q6_K) && ncols_dst > 1) {
+	    return 8;
+        }
         const int generic = calc_nwarps(type, ncols_dst, MMVQ_PARAMETERS_GENERIC);
         // Only worth the wider block when it actually retires the K loop in half the trips (Observation)
         if (ncols_dst == 1 && !small_k && halve_iters) {

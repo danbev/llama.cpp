@@ -167,6 +167,12 @@ static void ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1(ggml_backend_cuda_con
     }
 #endif // !defined(GGML_USE_HIP) && !defined(GGML_USE_MUSA)
 
+    constexpr bool force_wide_tile = true;
+    if (force_wide_tile && turing_mma_available(cc) && Q->ne[1] <= 8 && 32/ncols2 >= 8) {
+        ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 32/ncols2, ncols2>(ctx, dst);
+        return;
+    }
+
     if constexpr (ncols2 <= 8) {
         if (turing_mma_available(cc) && Q->ne[1] <= 8/ncols2) {
             ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 8/ncols2, ncols2>(ctx, dst);
@@ -641,7 +647,8 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
                 const bool sparse_decode = gqa_opt_applies && gqa_ratio > 4 &&
                     ggml_cuda_flash_attn_ext_mma_f16_may_use_sparse(K->ne[0], V->ne[0], 1, 8) &&
                     ggml_cuda_flash_attn_ext_mma_f16_shall_use_sparse(cc, dst, 1, 8);
-                if (!sparse_decode && cc >= GGML_CUDA_CC_ADA_LOVELACE && Q->ne[1] == 1 && Q->ne[3] == 1 &&
+                constexpr bool force_mma = true;
+                if (!force_mma && !sparse_decode && cc >= GGML_CUDA_CC_ADA_LOVELACE && Q->ne[1] == 1 && Q->ne[3] == 1 &&
                         !(gqa_ratio > 4 && (Q->ne[0] >= 256 || K->ne[1] >= 8192))) {
                     return BEST_FATTN_KERNEL_VEC;
                 }
